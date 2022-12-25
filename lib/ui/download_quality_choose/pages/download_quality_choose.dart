@@ -10,6 +10,8 @@ import '../../../constants/color_constants.dart';
 import '../../../model/response/GetDataYoutubeByDataType.dart';
 import '../../../repository/GetYoutubeMedaData.dart';
 import '../../../util/Injector.dart';
+import '../../../util/download_helper.dart';
+import 'my_bottom_sheet.dart';
 
 class YoutubeDownloaderPage extends StatefulWidget {
   final String? url;
@@ -20,6 +22,8 @@ class YoutubeDownloaderPage extends StatefulWidget {
 
 class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
   final Dio dio = locator<Dio>();
+  DownloaderHelper downloaderHelper = DownloaderHelper();
+
   TextEditingController _controller = TextEditingController();
   GetYoutubeMedaData getYoutubeMedaData = GetYoutubeMedaData();
   String thumbb = "";
@@ -56,6 +60,7 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
         sizeInMp3 = response.audioData.size;
         sizeInMp4 = response.mp4Data.size;
         thumbb = response.thumbnail;
+        isLoading = false;
       });
     }).onError((error, stackTrace) {
       setState(() {
@@ -69,7 +74,6 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
         });
         setState(() {});
       }
-      isLoading = false;
 
       //
     });
@@ -116,7 +120,6 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
           progress = '100 %';
         });
       });
-
       setState(() {
         if (progress.contains('100')) {
           if (format.contains('mp3')) {
@@ -155,7 +158,8 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
   void initState() {
     super.initState();
     if (widget.url != null) {
-      searchData(widget.url!);
+      // searchData(widget.url!);
+      _validate(widget.url!);
     }
     print('url' + widget.url.toString());
   }
@@ -177,12 +181,13 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
               suffixIcon: IconButton(
                 onPressed: () {
                   FocusScope.of(context).unfocus();
-                  searchData(_controller.text);
+                  // searchData(_controller.text);
+                  // _validate();
                 },
                 icon: Icon(Icons.search),
               ),
             ),
-            onSubmitted: (url) => searchData(url),
+            onSubmitted: _validate,
             textInputAction: TextInputAction.search,
           ),
         ),
@@ -192,96 +197,103 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
           direction: Axis.vertical,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            isError
+            isLoading
                 ? Center(
-                    child: Text(
-                      'Something wrong...',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    child: CircularProgressIndicator(),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        FadeInImage.assetNetwork(
-                          placeholder: 'assets/images/placeholder.png',
-                          image: thumbb,
-                          height: 150,
-                          width: 350,
-                          imageErrorBuilder: (context, error, stackTrace) {
-                            return Container(color: Colors.white);
-                          },
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Text(
-                          title.isEmpty
-                              ? 'Nothing\'s here,\n Give me a youtube link to download'
-                              : 'Title: $title',
-                          textAlign: TextAlign.center,
+                : isError
+                    ? Center(
+                        child: Text(
+                          'Something wrong...',
                           style: TextStyle(fontSize: 16),
                         ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Visibility(
-                          visible: sizeInMp3 == "" ? false : true,
-                          child: TextButton(
-                            child: Text(
-                              isDownloadingMp3
-                                  ? 'Downloading...'
-                                  : "Download MP3 ($sizeInMp3)".toUpperCase(),
-                              style: TextStyle(fontSize: 14),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            FadeInImage.assetNetwork(
+                              placeholder: 'assets/images/placeholder.png',
+                              image: thumbb,
+                              height: 150,
+                              width: 350,
+                              imageErrorBuilder: (context, error, stackTrace) {
+                                return Container(color: Colors.white);
+                              },
                             ),
-                            style: ButtonStyle(
-                              padding: MaterialStateProperty.all<EdgeInsets>(
-                                EdgeInsets.all(15),
-                              ),
-                              foregroundColor:
-                                  MaterialStateProperty.all<Color>(Colors.red),
-                              shape: MaterialStateProperty.all<
-                                  RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18.0),
-                                  side: BorderSide(color: Colors.red),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            Text(
+                              title.isEmpty
+                                  ? 'Nothing\'s here,\n\nAdd Link above'
+                                  : 'Title: $title',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            Visibility(
+                              visible: sizeInMp3 == "" ? false : true,
+                              child: TextButton(
+                                child: Text(
+                                  isDownloadingMp3
+                                      ? 'Downloading...'
+                                      : "Download MP3 ($sizeInMp3)"
+                                          .toUpperCase(),
+                                  style: TextStyle(fontSize: 14),
                                 ),
+                                style: ButtonStyle(
+                                  padding:
+                                      MaterialStateProperty.all<EdgeInsets>(
+                                    EdgeInsets.all(15),
+                                  ),
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Colors.red),
+                                  shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18.0),
+                                      side: BorderSide(color: Colors.red),
+                                    ),
+                                  ),
+                                ),
+                                onPressed:
+                                    isDownloadingMp3 || downloadingMp4Idx != -1
+                                        ? null
+                                        : () {
+                                            downloadVideo(
+                                                resultInMp3, title, '.mp3', -1);
+                                          },
                               ),
                             ),
-                            onPressed:
-                                isDownloadingMp3 || downloadingMp4Idx != -1
-                                    ? null
-                                    : () {
-                                        downloadVideo(
-                                            resultInMp3, title, '.mp3', -1);
-                                      },
-                          ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            ...List.generate(infoByQuality.length, (index) {
+                              return downloadVideoByQuality(index);
+                            }),
+                            infoByQuality.length != availableQuality.length
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                : SizedBox.shrink(),
+                            Visibility(
+                              visible: progress == "" ? false : true,
+                              child: Text(
+                                'Download Progress: $progress',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        ...List.generate(infoByQuality.length, (index) {
-                          return downloadVideoByQuality(index);
-                        }),
-                        infoByQuality.length != availableQuality.length
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              )
-                            : SizedBox.shrink(),
-                        Visibility(
-                          visible: progress == "" ? false : true,
-                          child: Text(
-                            'Download Progress: $progress',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
           ],
         ),
       ),
@@ -328,5 +340,102 @@ class _YoutubeDownloaderPageState extends State<YoutubeDownloaderPage> {
         ),
       ],
     );
+  }
+
+  void _validate(String url) async {
+    bool isDownloading = isDownloadingMp3 || downloadingMp4Idx != -1;
+
+    setState(() {
+      isLoading = true;
+    });
+    var data = await downloaderHelper.getVideoInfo(Uri.parse(url));
+    setState(() {
+      isLoading = false;
+    });
+    showModalBottomSheet(
+        context: context,
+        builder: (context) => MyBottomSheet(
+              imageUrl: data['image'].toString(),
+              title: data['title'],
+              author: data["author"],
+              duration: data['duration'].toString(),
+              mp3Size: data['mp3'],
+              mp4Size: data['mp4'],
+              mp3Method: () async {
+                setState(() {
+                  isDownloading = true;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                      content: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.download,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                          Text('  Audio Started Downloading')
+                        ],
+                      )));
+                });
+                await downloaderHelper.downloadMp3(data['id'], data['title']);
+                setState(() {
+                  isDownloading = false;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                      content: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.download_done,
+                            color: Colors.green,
+                            size: 30,
+                          ),
+                          Text('  Audio Downloaded')
+                        ],
+                      )));
+                });
+              },
+              isDownloading: isDownloading,
+              mp4Method: () async {
+                setState(() {
+                  isDownloading = true;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                      content: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.download,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                          Text('  Video Started Downloading')
+                        ],
+                      )));
+                });
+                await downloaderHelper.downloadMp4(data['id'], data['title']);
+                setState(() {
+                  isDownloading = false;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                      content: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.download_done,
+                            color: Colors.green,
+                            size: 30,
+                          ),
+                          Text('  Video Downloaded')
+                        ],
+                      )));
+                });
+              },
+            ));
   }
 }

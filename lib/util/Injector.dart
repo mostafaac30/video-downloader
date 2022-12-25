@@ -6,8 +6,8 @@ GetIt locator = GetIt.instance;
 
 Future baseDio() async {
   final options = BaseOptions(
-    connectTimeout: 300000,
-    receiveTimeout: 300000,
+    connectTimeout: 10000,
+    receiveTimeout: 10000,
   );
 
   var dio = Dio(options);

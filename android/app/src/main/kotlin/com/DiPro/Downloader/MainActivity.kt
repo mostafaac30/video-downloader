@@ -1,4 +1,4 @@
-package com.jp.receivesharing
+package com.DiPro.Downloader
 
 
 import android.content.Intent

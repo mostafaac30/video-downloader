@@ -11,7 +11,6 @@ import 'package:receivesharing/constants/dimens_constants.dart';
 import 'package:receivesharing/constants/font_size_constants.dart';
 import 'package:receivesharing/extension/scaffold_extension.dart';
 import 'package:receivesharing/ui/home/user_listing_screen.dart';
-import 'package:refresh/refresh.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../download_quality_choose/pages/download_quality_choose.dart';
@@ -27,15 +26,30 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Directory directory;
   List<OfflineVideo> videos = [];
-  void getDownloadDirFiles() async {
+  Future<void> getDownloadDirFiles() async {
+    videos.clear();
     directory = await DownloadsPath.downloadsDirectory() ?? Directory('');
+    // final videoDir =
+    //     Directory(directory.path + '/' + Constants.appName + '/Video');
+    // final audioDir =
+    //     Directory(directory.path + '/' + Constants.appName + '/Audio');
+    directory = Directory(directory.path + '/' + Constants.appName);
     directory.listSync().map((e) async {
-      if (e.path.contains(Constants.appName)) {
+      final isMp3 = e.path.contains(Constants.appName + '.mp3');
+      if (e.path.contains(Constants.appName + '.mp4') || isMp3) {
         videos.add(OfflineVideo(
-            path: e.path, thumbnailPath: await buildThumbnail(e.path)));
+            path: e.path,
+            thumbnailPath: isMp3 ? '' : await buildThumbnail(e.path)));
+        setState(() {});
       }
     }).toList();
-    setState(() {});
+    // audioDir.listSync().map((e) async {
+    //   if (e.path.contains(Constants.appName + '.mp3')) {
+    //     videos.add(OfflineVideo(
+    //         path: e.path, thumbnailPath: 'assets/images/placeholder.png'));
+    //     setState(() {});
+    //   }
+    // });
   }
 
   Future<String> buildThumbnail(String path) async {
@@ -49,8 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    getDownloadDirFiles();
     super.initState();
+    getDownloadDirFiles();
 
     SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
       listenShareMediaFiles(context);
@@ -59,23 +73,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SmartRefresher(
-      controller: RefreshController(initialRefresh: false),
-      enablePullDown: true,
-      enablePullUp: true,
-      onRefresh: () => getDownloadDirFiles(),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              vertical: DimensionConstants.topPadding10,
-              horizontal: DimensionConstants.horizontalPadding10),
-          child: videos.isEmpty
-              ? Text("downloaded Content...",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: FontSizeWeightConstants.fontSize20,
-                      color: ColorConstants.greyColor))
-              : ListView.separated(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            vertical: DimensionConstants.topPadding10,
+            horizontal: DimensionConstants.horizontalPadding10),
+        child: videos.isEmpty
+            ? Text("downloaded Content...",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: FontSizeWeightConstants.fontSize20,
+                    color: ColorConstants.greyColor))
+            : RefreshIndicator(
+                onRefresh: getDownloadDirFiles,
+                child: ListView.separated(
                   itemCount: videos.length,
                   itemBuilder: ((context, index) {
                     return InkWell(
@@ -86,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         clipBehavior: Clip.antiAliasWithSaveLayer,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(15),
-                          color: Colors.black12,
+                          color: Color.fromARGB(255, 228, 242, 248),
                         ),
                         child: Row(
                           children: [
@@ -97,6 +108,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 70,
                               width: 80,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset(
+                                'assets/images/wave.png',
+                                height: 70,
+                                width: 80,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                             Expanded(
                               child: Text(
@@ -114,14 +132,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     return Divider();
                   }),
                 ),
-        ),
-      ).generalScaffold(
-          context: context,
-          appTitle: Constants.appName,
-          isBack: false,
-          files: videos.map((e) => File(e.path)).toList(),
-          userList: []),
-    );
+              ),
+      ),
+    ).generalScaffold(
+        context: context,
+        appTitle: Constants.appName,
+        isBack: false,
+        files: videos.map((e) => File(e.path)).toList(),
+        userList: []);
   }
 
   //All listeners to listen Sharing media files & text

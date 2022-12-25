@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:receivesharing/ui/home/home_screen.dart';
 import 'package:receivesharing/util/Injector.dart';
+import 'package:receivesharing/util/notification.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await baseDio();
+  LocalNotificationService.intialize();
+
   runApp(MyApp());
 }
 

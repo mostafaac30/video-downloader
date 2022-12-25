@@ -25,7 +25,7 @@ extension ScaffoldExtension on Widget {
         body: SafeArea(
           child: this,
         ),
-        floatingActionButton: isShowFab
+        bottomSheet: isShowFab
             ? _fabButton(userList, sharedText, context, files)
             : SizedBox());
   }
@@ -61,33 +61,42 @@ extension ScaffoldExtension on Widget {
     BuildContext context,
     List<File>? files,
   ) =>
-      Padding(
-        padding:
-            const EdgeInsets.only(bottom: DimensionConstants.bottomPadding8),
-        child: ElevatedButton(
-            // backgroundColor: ColorConstants.primaryColor,
-            onPressed: () {
-              List<UserDetailModel> selectedUsers = [];
-              for (var user in userList!) {
-                if (user.isSelected) {
-                  selectedUsers.add(user);
-                }
-              }
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) =>
-                    //  SharingMediaPreviewScreen(
-                    //     files: files,
-                    //     userList: selectedUsers,
-                    //     text: sharedText ?? "")
-                    YoutubeDownloaderPage(),
-              ));
-            },
-            child: Text(
-              'Download more',
-              style: Theme.of(context).textTheme.bodyLarge,
-              // height: DimensionConstants.containerHeight50,
-              // width: DimensionConstants.containerHeight100,
-              // color: ColorConstants.whiteColor,
+      InkWell(
+        onTap: () {
+          List<UserDetailModel> selectedUsers = [];
+          for (var user in userList!) {
+            if (user.isSelected) {
+              selectedUsers.add(user);
+            }
+          }
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) =>
+                //  SharingMediaPreviewScreen(
+                //     files: files,
+                //     userList: selectedUsers,
+                //     text: sharedText ?? "")
+                YoutubeDownloaderPage(),
+          ));
+        },
+        child: Container(
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              color: ColorConstants.primaryColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: Text(
+                'Download more',
+                style: TextStyle(
+                  color: ColorConstants.offWhiteColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                // height: DimensionConstants.containerHeight50,
+                // width: DimensionConstants.containerHeight100,
+                // color: ColorConstants.whiteColor,
+              ),
             )),
       );
 }
