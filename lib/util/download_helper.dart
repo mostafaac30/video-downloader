@@ -68,10 +68,7 @@ class DownloaderHelper {
 
             String directory = await createAppDirectory();
             //Directory('/storage/emulated/0/Download');
-            name = name
-                .replaceAll(new RegExp(r'[^\w\s]+'), '')
-                .split(" ")
-                .join("");
+            name = name.replaceAll(new RegExp(r'[\\~#%&*{}/:<>?|\"-]'), '-');
             var file = File(
                 "$directory/$name-${DateTime.now().millisecond} - ${Constants.appName}.mp3");
 
